@@ -12,17 +12,16 @@ load_dotenv()
 # Enhanced BaseTool implementation with error handling and metadata
 from pydantic import BaseModel, Field
 
-# Define a schema matching CrewAI's input
 class ToolInputSchema(BaseModel):
-    description: str = Field(..., description="The task description or query for the tool")
+    input_data: str = Field(..., description="The input data or query for the tool")
 
+# Base tool class
 class EnhancedBaseTool(BaseTool):
-    args_schema: type[BaseModel] = ToolInputSchema  # Tell Pydantic to expect 'description'
+    args_schema: type[BaseModel] = ToolInputSchema  # Expect 'input_data'
 
-    def _run(self, input_data: dict) -> str:  # Type hint as dict since schema ensures it
+    def _run(self, input_data: dict) -> str:
         try:
-            # Extract 'description' from the validated input dict
-            input_str = input_data['description']
+            input_str = input_data['input_data']
             result = self.execute_tool_logic(input_str)
             return result
         except Exception as e:
@@ -46,10 +45,7 @@ class AdvancedResearchTool(EnhancedBaseTool):
     def execute_tool_logic(self, query: str) -> str:
         search_tool = DuckDuckGoSearchRun()
         results = search_tool.run(query)
-        
-        # Simulate enhanced processing of search results
         processed_results = f"Research findings for '{query}':\n\n{results}\n\nKey insights extracted:\n- Identified potential growth opportunities\n- Found recent organizational changes\n- Analyzed current market positioning"
-        
         return processed_results
 
 # Market Analysis Tool
@@ -58,7 +54,6 @@ class MarketAnalysisTool(EnhancedBaseTool):
     description: str = "Analyzes market trends, competitor landscapes, and industry developments"
 
     def execute_tool_logic(self, industry: str) -> str:
-        # Generalized market analysis that works for any industry
         analysis = (
             f"Market Analysis for {industry} industry:\n\n"
             f"1. Current Growth Rate: The {industry} sector is experiencing significant transformation\n"
@@ -75,7 +70,6 @@ class SentimentAnalysisTool(EnhancedBaseTool):
     description: str = "Analyzes sentiment in communications, social media, and public perception"
 
     def execute_tool_logic(self, text: str) -> str:
-        # Simple keyword-based sentiment analysis that works for any content
         positive_words = ["growth", "innovation", "success", "revolutionary", "increase", "profit", "opportunity"]
         negative_words = ["decline", "struggle", "loss", "failure", "problem", "decrease", "challenge"]
         
@@ -89,6 +83,7 @@ class SentimentAnalysisTool(EnhancedBaseTool):
             return f"Negative sentiment detected (score: {negative_count - positive_count}). Potential concerns to address in communications."
         else:
             return "Neutral sentiment detected. Recommend balanced approach focusing on factual information and value proposition."
+        
 
 # Strategic Planning Tool
 class StrategicPlanningTool(EnhancedBaseTool):
@@ -96,7 +91,6 @@ class StrategicPlanningTool(EnhancedBaseTool):
     description: str = "Develops strategic recommendations based on market research and organizational needs"
 
     def execute_tool_logic(self, context_data: str) -> str:
-        # Parse input data or use default generic approach
         try:
             data = json.loads(context_data)
             org_type = data.get("organization_type", "general")
@@ -105,7 +99,6 @@ class StrategicPlanningTool(EnhancedBaseTool):
             org_type = "general"
             objectives = ["growth", "efficiency"]
         
-        # Generate strategic recommendations that work for any organization
         strategies = {
             "growth": "Expand market presence through targeted digital campaigns and strategic partnerships",
             "efficiency": "Implement process automation and data-driven decision making",
@@ -118,7 +111,7 @@ class StrategicPlanningTool(EnhancedBaseTool):
             available_strategies = {"general": "Balanced approach focusing on sustainable growth and operational excellence"}
         
         return f"Strategic recommendations for {org_type} organization:\n\n" + "\n".join([f"- {strategy}" for strategy in available_strategies.values()])
-
+    
 # Communication Optimization Tool
 class CommunicationOptimizationTool(EnhancedBaseTool):
     name: str = "Communication Optimization Tool"
@@ -135,7 +128,6 @@ class CommunicationOptimizationTool(EnhancedBaseTool):
             message = input_data
             objective = "inform"
         
-        # Generic communication optimization
         enhancements = [
             "Simplified technical language for broader accessibility",
             "Added concrete examples to illustrate key points",
@@ -155,8 +147,7 @@ class KnowledgeBaseTool(EnhancedBaseTool):
     name: str = "Knowledge Base Tool"
     description: str = "Provides access to built-in knowledge and best practices for research, strategy, and communications"
     
-    # Built-in knowledge that would normally be in instruction files
-    knowledge :Dict[str, Dict[str, str]]={
+    knowledge: Dict[str, Dict[str, str]] = {
         "research_frameworks": {
             "competitive_analysis": (
                 "Framework for competitive analysis:\n"
@@ -223,27 +214,18 @@ class KnowledgeBaseTool(EnhancedBaseTool):
     }
     
     def execute_tool_logic(self, query: str) -> str:
-        # Parse the query to find the appropriate knowledge
         query_lower = query.lower()
-        
-        # First check for exact matches in knowledge categories
         for category, subcategories in self.knowledge.items():
             if category.lower() in query_lower:
                 for subcategory, content in subcategories.items():
                     if subcategory.lower() in query_lower:
                         return f"Knowledge Base: {subcategory.upper()}\n\n{content}"
-                
-                # If no subcategory match, return an overview of available subcategories
                 available = ", ".join(subcategories.keys())
                 return f"Available information in {category}:\n{available}\n\nPlease specify which aspect you need information about."
-        
-        # If no direct category match, search for keywords
         for category, subcategories in self.knowledge.items():
             for subcategory, content in subcategories.items():
                 if subcategory.lower() in query_lower:
                     return f"Knowledge Base: {subcategory.upper()}\n\n{content}"
-        
-        # If no matches, return a list of available knowledge areas
         available_categories = ", ".join(self.knowledge.keys())
         return f"No specific match found for '{query}'. Available knowledge categories: {available_categories}. Please refine your query."
 
@@ -307,7 +289,8 @@ target_research_task = Task(
     ),
     tools=[AdvancedResearchTool(), MarketAnalysisTool(), KnowledgeBaseTool()],
     agent=research_coordinator_agent,
-    context=[]  # No prior task dependency; this is the starting point
+    context=[],  # No prior task dependency; this is the starting point
+    input_fn=lambda context: {"input_data": f"Research target: {context.get('target_name', 'Target')}, Industry: {context.get('industry', 'industry')}, Focus: market position, developments, decision-makers, and strategic initiatives"}
 )
 
 market_analysis_task = Task(
@@ -330,7 +313,8 @@ market_analysis_task = Task(
     ),
     tools=[MarketAnalysisTool(), AdvancedResearchTool(), KnowledgeBaseTool()],
     agent=market_analyst_agent,
-    context=[target_research_task]  # Depends on target_research_task
+    context=[target_research_task],
+    input_fn=lambda context: {"input_data": context.get('industry', 'financial services')}
 )
 
 strategy_development_task = Task(
@@ -354,7 +338,11 @@ strategy_development_task = Task(
     ),
     tools=[StrategicPlanningTool(), KnowledgeBaseTool()],
     agent=strategy_specialist_agent,
-    context=[target_research_task, market_analysis_task]  # Depends on both prior tasks
+    context=[target_research_task, market_analysis_task],
+    input_fn=lambda context: {"input_data": json.dumps({
+        "organization_type": context.get('industry', 'financial_services'),
+        "objectives": ["growth", "efficiency", "innovation"]
+    })}
 )
 
 communication_development_task = Task(
@@ -378,7 +366,12 @@ communication_development_task = Task(
     ),
     tools=[CommunicationOptimizationTool(), SentimentAnalysisTool(), KnowledgeBaseTool()],
     agent=communication_expert_agent,
-    context=[strategy_development_task]  # Depends on strategy_development_task
+    context=[strategy_development_task],  # Depends on strategy_development_task
+    input_fn=lambda context: {"input_data": json.dumps({
+        "audience": context.get('key_decision_maker', 'stakeholder'),
+        "message": f"Strategic engagement with {context.get('target_name', 'Target')} in {context.get('industry', 'industry')}",
+        "objective": "engage"
+    })}
 )
 
 # Add a self-reflection task to demonstrate advanced agentic capabilities
@@ -402,7 +395,11 @@ reflection_task = Task(
     ),
     tools=[StrategicPlanningTool(), KnowledgeBaseTool()],
     agent=strategy_specialist_agent,
-    context=[strategy_development_task, communication_development_task]  # Depends on strategy and communication tasks
+    context=[strategy_development_task, communication_development_task],  # Depends on strategy and communication tasks
+    input_fn=lambda context: {"input_data": json.dumps({
+        "organization_type": context.get('industry', 'financial_services'),
+        "objectives": ["risk_assessment", "improvement", "contingency_planning"]
+    })}
 )
 # Define advanced Crew with process configuration
 crew = Crew(
@@ -426,11 +423,11 @@ crew = Crew(
 
 # Generic input that works for any target and industry
 input_data = {
-    'target_name': 'NVIDIA Corp',
-    'industry': 'Semiconductors',
-    'key_decision_maker': 'Jensen Huang',
+    'target_name': 'Hindustan Unilever Limited',
+    'industry': 'Fast-moving consumer goods',
+    'key_decision_maker': 'Rohit Jawa',
     'position': 'CEO',
-    'milestone': 'major release of new NVIDIA Cosmos™ world foundation models (WFMs)'
+    'milestone': 'HUL exceeded INR 50,000 Crore in revenue'
 }
 
 # Execute the crew's work
