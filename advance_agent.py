@@ -190,25 +190,35 @@ class CommunicationOptimizationTool(EnhancedBaseTool):
 class KnowledgeBaseTool(EnhancedBaseTool):
     name: str = "Knowledge Base Tool"
     description: str = "Provides access to built-in knowledge and best practices for research, strategy, and communications loaded from knowledge_base.json"
-    # Removed the hardcoded knowledge dictionary
+    # Declare fields with class-level defaults where appropriate
+    knowledge: Dict[str, Dict[str, str]] = {} 
+    knowledge_file: str = "knowledge_base.json" # Provide default here
 
-    def __init__(self, knowledge_file: str = "knowledge_base.json"):
-        super().__init__() # Initialize the parent BaseTool class
-        self.knowledge: Dict[str, Dict[str, str]] = {}
-        self.knowledge_file = knowledge_file
+    # __init__ can now be simplified or removed if only loading logic remains
+    # Let's keep it to explicitly show the loading process
+    def __init__(self, **kwargs): # Accept arbitrary kwargs for flexibility
+        # Pass any provided kwargs to the parent init first
+        # This ensures Pydantic initializes fields correctly based on class defaults
+        # or any values passed during instantiation (like by CrewAI if it ever changes)
+        super().__init__(**kwargs) 
+        # The self.knowledge_file field is already set by Pydantic
         try:
-            with open(self.knowledge_file, 'r', encoding='utf-8') as f:
-                self.knowledge = json.load(f)
+            # Use the field value self.knowledge_file which has the default
+            with open(self.knowledge_file, 'r', encoding='utf-8') as f: 
+                self.knowledge = json.load(f) 
             print(f"Knowledge Base Tool initialized successfully from {self.knowledge_file}.")
         except FileNotFoundError:
             print(f"Error: Knowledge base file '{self.knowledge_file}' not found. Initializing with empty knowledge.")
-            self.knowledge = {}
+            # Default empty dict is already set in field declaration
+            pass 
         except json.JSONDecodeError as e:
             print(f"Error: Failed to decode JSON from '{self.knowledge_file}': {e}. Initializing with empty knowledge.")
-            self.knowledge = {}
+            # Default empty dict is already set in field declaration
+            pass 
         except Exception as e:
             print(f"An unexpected error occurred loading knowledge base from '{self.knowledge_file}': {e}")
-            self.knowledge = {}
+            # Default empty dict is already set in field declaration
+            pass
 
     def execute_tool_logic(self, query: str) -> str:
         if not self.knowledge:
@@ -358,7 +368,7 @@ def send_email_with_attachment(recipient_email, subject, body, file_path):
 
 # Define more specialized and autonomous Agents
 market_analyst_agent = Agent(
-    role="Market Research Specialist",
+    role="Market Analyst",
     goal="Provide comprehensive market intelligence to inform strategic decisions",
     backstory="You are an expert analyst with deep experience across multiple industries. Your ability to identify patterns and extract meaningful insights from complex data sets makes you invaluable for understanding market dynamics and competitive landscapes.",
     allow_delegation=True,
@@ -367,7 +377,7 @@ market_analyst_agent = Agent(
 )
 
 strategy_specialist_agent = Agent(
-    role="Strategic Planning Expert",
+    role="Strategy Expert",
     goal="Develop effective strategies based on market research and organizational objectives",
     backstory="You've mastered the art of translating research into actionable strategies. With your exceptional analytical thinking and creative problem-solving, you consistently develop approaches that achieve organizational objectives while adapting to market conditions.",
     allow_delegation=True,
@@ -376,7 +386,7 @@ strategy_specialist_agent = Agent(
 )
 
 communication_expert_agent = Agent(
-    role="Communication Specialist",
+    role="Comms Expert",
     goal="Craft personalized, impactful communications that resonate with target audiences",
     backstory="Your background in psychology and communication theory has made you exceptionally skilled at crafting messages that connect. You understand how to adapt tone, structure, and content to different audiences while maintaining authenticity and driving engagement.",
     allow_delegation=True,
@@ -393,165 +403,258 @@ research_coordinator_agent = Agent(
     tools=[AdvancedResearchTool(), KnowledgeBaseTool()]
 )
 
+# --- New Agents ---
+
+financial_analyst_agent = Agent(
+    role="Financial Analyst",
+    goal="Analyze the target company's financial health, performance, and investment potential based on public data.",
+    backstory=(
+        "An expert in interpreting financial statements, stock market data, and investment reports to assess corporate "
+        "financial standing and trajectory. You meticulously search for earnings reports, financial ratios, stock performance, "
+        "and major financial events."
+    ),
+    allow_delegation=False,
+    verbose=True,
+    tools=[AdvancedResearchTool(), KnowledgeBaseTool()] # Use research tool for financial data, KB for frameworks
+)
+
+competitor_analyst_agent = Agent(
+    role="Competitor Analyst",
+    goal="Perform deep-dive analysis on key competitors identified for the target company.",
+    backstory=(
+        "Skilled at uncovering competitor strategies, strengths, weaknesses, and market positioning through targeted research. "
+        "You identify primary competitors and dissect their market approach."
+    ),
+    allow_delegation=False,
+    verbose=True,
+    tools=[AdvancedResearchTool(), KnowledgeBaseTool()] # Use research tool for competitor info, KB for profiling frameworks
+)
+
+# Added Critique Agent
+critique_agent = Agent(
+    role="Critique Strategist",
+    goal="Provide constructive critique on analysis reports to ensure strategic alignment, clarity, and actionability.",
+    backstory=(
+        "You are a highly experienced strategist known for your sharp analytical eye and ability to identify hidden assumptions "
+        "and potential weaknesses in reports. Your feedback is crucial for refining analyses and ensuring they effectively inform "
+        "strategic decision-making. You evaluate reports against best practices and strategic objectives."
+    ),
+    allow_delegation=False, 
+    verbose=True,
+    tools=[KnowledgeBaseTool(), StrategicPlanningTool()]
+)
+
 # Define Tasks with enhanced complexity and interdependence
 target_research_task = Task(
-    description=(
-        "Conduct comprehensive research on {target_name} in the {industry} sector. "
-        "Analyze their current market position, recent developments, key decision-makers, "
-        "organizational structure, and strategic initiatives. "
-        "Identify potential needs, challenges, and opportunities relevant to our offerings. "
-        "This analysis will form the foundation for our strategic approach. "
-        "Focus on verifiable information, distinguish between facts and speculative analysis, "
-        "consider both public information and industry-specific insights, and use the knowledge "
-        "base for research frameworks and industry context."
-    ),
-    expected_output=(
-        "A detailed intelligence report including:\n"
-        "1. Organization overview and market position\n"
-        "2. Key stakeholders and decision-making structure\n"
-        "3. Recent initiatives and strategic direction\n"
-        "4. Identified needs and challenges\n"
-        "5. Potential opportunities for engagement\n"
-        "6. Recommended approach vectors"
-    ),
-    tools=[AdvancedResearchTool(), MarketAnalysisTool(), KnowledgeBaseTool()],
+    description="""Conduct comprehensive research on {company_name} in the {industry} sector. 
+Analyze their current market position, recent developments, key decision-makers (if identifiable), 
+organizational structure, and strategic initiatives. 
+Identify potential needs, challenges, and opportunities relevant to our offerings. 
+This analysis will form the foundation for subsequent financial, competitor, and market analysis. 
+Focus on verifiable information, distinguish between facts and speculative analysis, 
+consider both public information and industry-specific insights, and use the knowledge 
+base for research frameworks and industry context.""",
+    expected_output="""A detailed intelligence report including:
+- Organization overview and market position
+- Key stakeholders and decision-making structure (if found)
+- Recent initiatives and strategic direction
+- Identified needs and challenges
+- Potential opportunities for engagement
+- Recommended approach vectors
+""",
+    tools=[AdvancedResearchTool(), KnowledgeBaseTool()], # Removed MarketAnalysisTool here, focus on initial research
     agent=research_coordinator_agent,
     context=[],
+    # Simplified input_fn as primary focus is research based on name/industry
     input_fn=lambda context: {
-        "description": f"Research target: {context.get('target_name', 'Target')}, Industry: {context.get('industry', 'industry')}, Focus: market position, developments, decision-makers, and strategic initiatives"
+        "description": f"Research company: {context.get('company_name', 'Target Company')}, Industry: {context.get('industry', 'Unknown Industry')}. Focus: market position, developments, structure, initiatives, needs, challenges."
     }
+)
+
+# NEW Financial Analysis Task
+financial_analysis_task = Task(
+    description="""Based on the initial research on {company_name}, analyze its financial performance and health. 
+Specifically look for:
+- Recent earnings reports (quarterly/annual revenues, profits, key highlights).
+- Key financial ratios (e.g., Profitability: Gross/Net Margin; Leverage: Debt-to-Equity; Liquidity: Current Ratio). Consult the 'financial ratio analysis' framework in the Knowledge Base.
+- Stock performance trends (if public: recent price movement, analyst ratings).
+- Major investments, acquisitions, or divestitures.
+Summarize the company's overall financial health, stability, and growth outlook.
+Use the Advanced Research Tool focusing on financial data sources (e.g., investor relations pages, financial news sites like Reuters, Bloomberg, Yahoo Finance).""",
+    expected_output="""A concise financial analysis summary including:
+- Overview of recent financial performance (revenue/profit trends).
+- Key positive and negative financial indicators (based on ratios or news).
+- Assessment of financial stability and growth potential.
+- Mention of any significant recent financial events (M&A, investments).
+""",
+    tools=[AdvancedResearchTool(), KnowledgeBaseTool()],
+    agent=financial_analyst_agent,
+    context=[target_research_task], # Needs initial research context
+)
+
+# NEW Competitor Analysis Task
+competitor_analysis_task = Task(
+    description="""Based on the initial research on {company_name} operating in the {industry} sector, identify its top 2-3 direct competitors. 
+For each identified competitor, perform a brief analysis using the 'competitor profiling' framework from the Knowledge Base:
+- Competitor's primary products/services and target market.
+- Estimated market position or share relative to {company_name}.
+- Recent notable strategic moves or news.
+- Perceived key strengths and weaknesses.
+Use the Advanced Research Tool to find information about these competitors.""",
+    expected_output="""A competitor analysis section including:
+- Identification of the top 2-3 direct competitors.
+- For each competitor: A brief profile covering products, market position, recent moves, strengths, and weaknesses.
+""",
+    tools=[AdvancedResearchTool(), KnowledgeBaseTool()],
+    agent=competitor_analyst_agent,
+    context=[target_research_task], # Needs initial research context
 )
 
 market_analysis_task = Task(
-    description=(
-        "Based on the research findings about {target_name}, conduct a thorough analysis of the "
-        "{industry} market landscape. Identify key trends, competitive dynamics, and market gaps. "
-        "Evaluate how our solutions align with current market needs and opportunities. "
-        "This analysis should provide strategic context for our engagement approach. "
-        "Use the target research as context for more focused market analysis, consider both "
-        "established patterns and emerging trends in the industry, and identify specific areas "
-        "where our solutions can address market needs."
-    ),
-    expected_output=(
-        "A market analysis report including:\n"
-        "1. Industry overview and current trends\n"
-        "2. Competitive landscape analysis\n"
-        "3. Market gaps and opportunities\n"
-        "4. Strategic positioning recommendations\n"
-        "5. Potential differentiation points for our offerings"
-    ),
-    tools=[MarketAnalysisTool(), AdvancedResearchTool(), KnowledgeBaseTool()],
+    description="""Synthesize the initial research on {company_name}, the competitor analysis, and broader {industry} trends to provide a comprehensive market landscape analysis. 
+Identify key market trends, overall competitive dynamics (building on the competitor profiles), and potential market gaps or opportunities relevant to {company_name}. 
+Evaluate how {company_name}'s offerings align with current market needs, considering the competitive context provided.
+This analysis should provide strategic context for our engagement approach.""",
+    expected_output="""A market analysis report including:
+- Overview of key industry trends affecting the {industry} sector.
+- Summary of the competitive landscape dynamics (how major players interact).
+- Identification of market gaps or opportunities relevant to {company_name}.
+- Strategic positioning recommendations for {company_name} within this market context.
+""",
+    tools=[MarketAnalysisTool(), KnowledgeBaseTool()], # MarketAnalysisTool for broader trends, KB for frameworks
     agent=market_analyst_agent,
-    context=[target_research_task],
+    # UPDATE Context: Now depends on competitor analysis as well
+    context=[target_research_task, competitor_analysis_task], 
+    # Input function focuses on the industry, assuming context provides company/competitor details
     input_fn=lambda context: {
-        "description": f"Analyze market trends and competitive landscape for {context.get('industry', 'Fast-moving consumer goods')} industry, focusing on recent developments and future opportunities" 
+        "description": f"Analyze market trends and competitive landscape for the {context.get('industry', 'Unknown Industry')} industry, considering context on {context.get('company_name', 'Target Company')} and its competitors."
     }
 )
 
+market_analysis_critique_task = Task(
+    description="""Critically evaluate the Market Analysis Report provided by the previous task (available in the execution context). 
+Focus your critique on the analysis for {company_name} in the {industry} sector, considering the following points:
+
+1. Strategic Relevance: Does the analysis directly inform the strategic goals for engagement?
+
+2. Actionability: Are the insights clear, specific, and actionable?
+
+3. Completeness: Are there any significant gaps (e.g., competitor blind spots, overlooked trends)?
+
+4. Clarity and Structure: Is the report well-organized and easy to understand?
+
+Consult the Knowledge Base for relevant analytical frameworks or best practices if needed. 
+Provide specific strengths, weaknesses, and actionable recommendations for improvement based on the provided report.
+""",
+    expected_output="""A structured critique document outlining:
+
+- Key Strengths of the Market Analysis provided in the context.
+
+- Identified Weaknesses or Gaps in the provided analysis.
+
+- Specific, actionable suggestions for enhancement or refinement of the analysis.
+""",
+    tools=[KnowledgeBaseTool(), StrategicPlanningTool()],
+    agent=critique_agent,
+    # Context remains dependent on market_analysis_task
+    context=[market_analysis_task], 
+)
+
 strategy_development_task = Task(
-    description=(
-        "Using insights from both the target research and market analysis, develop a comprehensive "
-        "engagement strategy for {target_name}. Create a strategic roadmap that addresses their "
-        "specific needs while leveraging our unique capabilities. The strategy should include "
-        "positioning, value proposition, engagement approach, and potential objection handling. "
-        "Integrate findings from previous research to create a cohesive strategy, ensure the "
-        "strategy addresses specific needs identified in the research, balance short-term "
-        "engagement objectives with long-term relationship building, and apply appropriate "
-        "strategic frameworks from the knowledge base."
-    ),
-    expected_output=(
-        "A strategic engagement plan including:\n"
-        "1. Tailored value proposition\n"
-        "2. Engagement roadmap with key milestones\n"
-        "3. Positioning strategy relative to competitors\n"
-        "4. Anticipated objections and response frameworks\n"
-        "5. Success metrics and evaluation criteria"
-    ),
+    description="""Using insights from the initial research, financial analysis, competitor analysis, market analysis, and the critique feedback, 
+develop a comprehensive engagement strategy for {company_name}. Create a strategic roadmap that addresses their 
+specific needs (informed by research) while leveraging our unique capabilities within the competitive and financial context. 
+The strategy should include positioning, value proposition, engagement approach, and potential objection handling. 
+Integrate all prior findings to create a cohesive strategy. Apply appropriate strategic frameworks from the knowledge base.""",
+    expected_output="""A strategic engagement plan including:
+1. Tailored value proposition
+2. Engagement roadmap with key milestones
+3. Positioning strategy relative to competitors
+4. Anticipated objections and response frameworks
+5. Success metrics and evaluation criteria
+""",
     tools=[StrategicPlanningTool(), KnowledgeBaseTool()],
     agent=strategy_specialist_agent,
-    context=[target_research_task, market_analysis_task],
+    # UPDATE Context: Add financial and competitor analysis tasks
+    context=[target_research_task, financial_analysis_task, competitor_analysis_task, market_analysis_task, market_analysis_critique_task], 
     input_fn=lambda context: {
         "description": json.dumps({
-            "organization_type": context.get('industry', 'Fast-moving consumer goods'),
+            "organization_type": context.get('industry', 'Unknown Industry'),
             "objectives": ["growth", "efficiency", "innovation"]
         })
     }
 )
 
 communication_development_task = Task(
-    description=(
-        "Based on the strategic engagement plan, develop a comprehensive communication framework "
-        "for engaging with {target_name}. Create personalized communication templates for key "
-        "stakeholders that align with our strategic objectives. The communications should "
-        "demonstrate deep understanding of their needs while clearly articulating our value "
-        "proposition. Align all communications with the strategic approach developed earlier, "
-        "customize messaging for different stakeholder roles and priorities, balance educational "
-        "content with clear value propositions, and utilize communication frameworks from the "
-        "knowledge base."
-    ),
-    expected_output=(
-        "A communication package including:\n"
-        "1. Tailored messaging frameworks for different stakeholders\n"
-        "2. Engagement sequence with trigger points\n"
-        "3. Key talking points and value statements\n"
-        "4. Supporting materials and reference content\n"
-        "5. Follow-up templates and conversation guides"
-    ),
+    description="""Based on the refined strategic engagement plan (which incorporated financial, competitor, market analysis, and critique feedback), 
+develop a comprehensive communication framework for engaging with {company_name}. 
+Create personalized communication templates for key stakeholder types (e.g., leadership, technical teams) that align with our strategic objectives. 
+The communications should demonstrate deep understanding of their needs and context while clearly articulating our value proposition. 
+Align all communications with the refined strategic approach. Utilize communication frameworks from the knowledge base.""",
+    expected_output="""A communication package including:
+1. Tailored messaging frameworks for different stakeholders
+2. Engagement sequence with trigger points
+3. Key talking points and value statements
+4. Supporting materials and reference content
+5. Follow-up templates and conversation guides
+""",
     tools=[CommunicationOptimizationTool(), SentimentAnalysisTool(), KnowledgeBaseTool()],
     agent=communication_expert_agent,
-    context=[strategy_development_task],
+    # Context remains dependent on strategy_development_task
+    context=[strategy_development_task], 
     input_fn=lambda context: {
         "description": json.dumps({
-            "audience": context.get('key_decision_maker', 'stakeholder'),
-            "message": f"Strategic engagement with {context.get('target_name', 'Target')} in {context.get('industry', 'Fast-moving consumer goods')}",
+            "audience": "key stakeholders", 
+            "message": f"Strategic engagement with {context.get('company_name', 'Target Company')} in {context.get('industry', 'Unknown Industry')}",
             "objective": "engage"
         })
     }
 )
 
-# Add a self-reflection task to demonstrate advanced agentic capabilities
 reflection_task = Task(
-    description=(
-        "Conduct a thorough analysis of the strategy and communication plan developed for {target_name}. "
-        "Identify potential weaknesses, blind spots, or areas for improvement. Consider alternative "
-        "approaches and edge cases that might not have been addressed. This critical self-reflection "
-        "should strengthen our overall approach and prepare us for potential challenges. "
-        "Apply critical thinking to challenge assumptions in the existing strategy, consider how "
-        "competitors might respond to our approach, identify potential implementation challenges, "
-        "and suggest specific enhancements to improve effectiveness."
-    ),
-    expected_output=(
-        "A strategic reflection document including:\n"
-        "1. Critical evaluation of key assumptions\n"
-        "2. Identification of potential weaknesses\n"
-        "3. Alternative approaches or contingency plans\n"
-        "4. Recommendations for strengthening the strategy\n"
-        "5. Key risk factors and mitigation approaches"
-    ),
+    description="""Conduct a thorough final analysis of the overall strategy and communication plan developed for {company_name}, 
+considering all preceding analysis stages (research, financial, competitor, market, critique). 
+Identify potential weaknesses, blind spots, or areas for improvement in the final plan. Consider alternative approaches and edge cases. 
+This critical self-reflection should strengthen our overall approach and prepare us for potential challenges.""",
+    expected_output="""A strategic reflection document including:
+1. Critical evaluation of key assumptions
+2. Identification of potential weaknesses
+3. Alternative approaches or contingency plans
+4. Recommendations for strengthening the strategy
+5. Key risk factors and mitigation approaches
+""",
     tools=[StrategicPlanningTool(), KnowledgeBaseTool()],
     agent=strategy_specialist_agent,
-    context=[strategy_development_task, communication_development_task],
+    # UPDATE Context: Add financial and competitor analysis tasks for final review
+    context=[strategy_development_task, communication_development_task, market_analysis_critique_task, financial_analysis_task, competitor_analysis_task], 
     input_fn=lambda context: {
         "description": json.dumps({
-            "organization_type": context.get('industry', 'Fast-moving consumer goods'),
+            "organization_type": context.get('industry', 'Unknown Industry'),
             "objectives": ["risk_assessment", "improvement", "contingency_planning"]
         })
     }
 )
+
 # Define advanced Crew with process configuration
 crew = Crew(
     agents=[
         research_coordinator_agent,
+        financial_analyst_agent, 
+        competitor_analyst_agent,
         market_analyst_agent,
+        critique_agent,
         strategy_specialist_agent,
         communication_expert_agent
     ],
     tasks=[
         target_research_task,
-        market_analysis_task,
-        strategy_development_task,
+        financial_analysis_task, # Added
+        competitor_analysis_task, # Added
+        market_analysis_task, # Now depends on competitor task
+        market_analysis_critique_task,
+        strategy_development_task, # Now depends on financial & competitor tasks
         communication_development_task,
-        reflection_task
+        reflection_task # Now depends on financial & competitor tasks
     ],
     verbose=True,
     memory=True,
@@ -560,11 +663,8 @@ crew = Crew(
 
 # Generic input that works for any target and industry
 input_data = {
-    'target_name': 'Hindustan Unilever Limited',
-    'industry': 'Fast-moving consumer goods',
-    'key_decision_maker': 'Rohit Jawa',
-    'position': 'CEO',
-    'milestone': 'HUL exceeded INR 50,000 Crore in revenue'
+    'company_name': 'HDFC Bank',
+    'industry': 'Finance and Banking'
 }
 
 print("\n--- Starting Crew Execution ---")
@@ -573,10 +673,10 @@ print("--- Crew Execution Finished ---")
 
 def format_to_text(execution_time, tasks, result_container, agents, input_data):
     output_lines = []
-    target_name = input_data.get('target_name', 'Unknown Target')
+    company_name = input_data.get('company_name', 'Unknown Company')
     industry = input_data.get('industry', 'Unknown Industry')
     
-    output_lines.append(f"{target_name} Strategic Analysis Report")
+    output_lines.append(f"{company_name} Strategic Analysis Report")
     output_lines.append(f"Industry: {industry}")
     output_lines.append(f"Generated on: {execution_time}")
     output_lines.append("=" * 50)
@@ -596,6 +696,7 @@ def format_to_text(execution_time, tasks, result_container, agents, input_data):
         output_lines.append("--- Task Results ---")
         for i, (task, task_output) in enumerate(zip(tasks, task_outputs)):
             task_desc = task.description.split(".")[0]
+            task_desc = task_desc.replace("{company_name}", company_name).replace("{industry}", industry)
             output_lines.append(f"\nTask {i+1}: {task_desc}")
             output_lines.append("-" * 40)
             
@@ -638,7 +739,7 @@ def format_to_text(execution_time, tasks, result_container, agents, input_data):
 execution_time_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") 
 formatted_text = format_to_text(execution_time_str, crew.tasks, result, crew.agents, input_data) 
 
-target_name_safe = input_data.get('target_name', 'analysis').replace(" ", "_").replace(".", "").lower()
+target_name_safe = input_data.get('company_name', 'analysis').replace(" ", "_").replace(".", "").lower()
 file_path = f"{target_name_safe}_report_{execution_time_str}.txt" 
 
 report_written = False
@@ -653,8 +754,8 @@ except Exception as e:
 if report_written:
     recipient = os.getenv("RECIPIENT_EMAIL")
     if recipient:
-        email_subject = f"CrewAI Analysis Report for {input_data.get('target_name', 'Target')}"
-        email_body = f"Attached is the strategic analysis report for {input_data.get('target_name', 'Target')} generated on {execution_time_str}."
+        email_subject = f"CrewAI Analysis Report for {input_data.get('company_name', 'Target Company')}"
+        email_body = f"Attached is the strategic analysis report for {input_data.get('company_name', 'Target Company')} generated on {execution_time_str}."
         
         print(f"\nAttempting to send report to {recipient}...")
         email_sent = send_email_with_attachment(

@@ -1,7 +1,9 @@
 {
   "research_frameworks": {
     "competitive_analysis": "Framework for competitive analysis:\n1. Identify key competitors (direct, indirect, potential).\n2. Analyze their product/service offerings, pricing, distribution.\n3. Evaluate marketing strategies and market positioning.\n4. Assess strengths and weaknesses (SWOT).\n5. Identify opportunities for differentiation.",
-    "stakeholder_mapping": "Framework for stakeholder mapping:\n1. Identify all relevant stakeholders (internal/external).\n2. Categorize by influence (High/Low) and interest (High/Low).\n3. Determine key needs, expectations, and potential concerns.\n4. Map relationships and communication channels.\n5. Develop tailored engagement strategies for each quadrant."
+    "stakeholder_mapping": "Framework for stakeholder mapping:\n1. Identify all relevant stakeholders (internal/external).\n2. Categorize by influence (High/Low) and interest (High/Low).\n3. Determine key needs, expectations, and potential concerns.\n4. Map relationships and communication channels.\n5. Develop tailored engagement strategies for each quadrant.",
+    "financial_ratio_analysis": "Key Financial Ratios:\n- Profitability (e.g., Gross Profit Margin, Net Profit Margin, ROE, ROA)\n- Liquidity (e.g., Current Ratio, Quick Ratio)\n- Leverage (e.g., Debt-to-Equity Ratio, Interest Coverage Ratio)\n- Efficiency (e.g., Asset Turnover, Inventory Turnover)\n- Market Value (e.g., P/E Ratio, Dividend Yield - if applicable)",
+    "competitor_profiling": "Competitor Profile Elements:\n- Company Overview (Size, history, mission)\n- Products/Services Offered\n- Target Markets & Customer Segments\n- Pricing Strategy\n- Marketing & Sales Strategy\n- Key Strengths & Weaknesses\n- Recent Strategic Initiatives/News"
   },
   "strategic_models": {
     "swot_analysis": "SWOT Analysis Framework:\n- Strengths: Internal capabilities giving an advantage.\n- Weaknesses: Internal limitations creating disadvantages.\n- Opportunities: External factors the org could leverage.\n- Threats: External factors posing risks to the org.",
