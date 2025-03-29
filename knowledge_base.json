@@ -1,0 +1,21 @@
+{
+  "research_frameworks": {
+    "competitive_analysis": "Framework for competitive analysis:\n1. Identify key competitors (direct, indirect, potential).\n2. Analyze their product/service offerings, pricing, distribution.\n3. Evaluate marketing strategies and market positioning.\n4. Assess strengths and weaknesses (SWOT).\n5. Identify opportunities for differentiation.",
+    "stakeholder_mapping": "Framework for stakeholder mapping:\n1. Identify all relevant stakeholders (internal/external).\n2. Categorize by influence (High/Low) and interest (High/Low).\n3. Determine key needs, expectations, and potential concerns.\n4. Map relationships and communication channels.\n5. Develop tailored engagement strategies for each quadrant."
+  },
+  "strategic_models": {
+    "swot_analysis": "SWOT Analysis Framework:\n- Strengths: Internal capabilities giving an advantage.\n- Weaknesses: Internal limitations creating disadvantages.\n- Opportunities: External factors the org could leverage.\n- Threats: External factors posing risks to the org.",
+    "value_proposition": "Value Proposition Framework:\n1. Target Customer Segment: Who are you helping?\n2. Customer Problem/Need: What pain point are you solving?\n3. Solution Benefits: What gains do you offer?\n4. Unique Differentiator: Why choose you over alternatives?\n5. Proof/Evidence: How do you substantiate claims?"
+  },
+  "communication_guidelines": {
+    "stakeholder_messaging": "Guidelines for Stakeholder Messaging:\n- C-Level: Strategic impact, ROI, competitive advantage, risks.\n- Directors/VPs: Operational efficiency, departmental benefits, resource needs.\n- Managers: Team impact, implementation details, process changes.\n- End Users: Ease of use, individual productivity gains, support info.\n- Investors: Financial performance, growth potential, risk mitigation.",
+    "objection_handling": "Framework for Handling Objections:\n1. Listen Actively: Understand the full concern without interruption.\n2. Acknowledge & Validate: Show empathy ('I understand why you'd ask that...').\n3. Clarify & Isolate: Ask questions to pinpoint the core issue.\n4. Respond & Address: Provide relevant information, data, or solutions.\n5. Confirm Understanding: Check if the response resolved the concern.\n6. Transition Forward: Move back to the main discussion or next steps."
+  },
+  "industry_insights": {
+    "technology": "Rapid innovation cycles, focus on AI/ML, cloud adoption, cybersecurity threats, talent shortages, evolving regulations (privacy, AI ethics).",
+    "financial_services": "Digital transformation (fintech), blockchain adoption, regulatory changes (Basel III/IV, open banking), focus on customer experience, cybersecurity risks.",
+    "healthcare": "Telemedicine growth, data analytics for diagnostics/treatment, personalized medicine, value-based care models, interoperability challenges, patient data privacy (HIPAA).",
+    "retail": "Omnichannel strategies, supply chain resilience, experiential retail, rise of e-commerce and D2C, personalization, sustainability demands.",
+    "fast-moving consumer goods": "Supply chain optimization, evolving consumer preferences (health, sustainability), e-commerce channel growth, brand building in digital space, inflationary pressures."
+  }
+} 
