@@ -194,7 +194,6 @@ class KnowledgeBaseTool(EnhancedBaseTool):
     knowledge: Dict[str, Dict[str, str]] = {} 
     knowledge_file: str = "knowledge_base.json" # Provide default here
 
-    # __init__ can now be simplified or removed if only loading logic remains
     # Let's keep it to explicitly show the loading process
     def __init__(self, **kwargs): # Accept arbitrary kwargs for flexibility
         # Pass any provided kwargs to the parent init first
@@ -430,20 +429,6 @@ competitor_analyst_agent = Agent(
     tools=[AdvancedResearchTool(), KnowledgeBaseTool()] # Use research tool for competitor info, KB for profiling frameworks
 )
 
-# Added Critique Agent
-critique_agent = Agent(
-    role="Critique Strategist",
-    goal="Provide constructive critique on analysis reports to ensure strategic alignment, clarity, and actionability.",
-    backstory=(
-        "You are a highly experienced strategist known for your sharp analytical eye and ability to identify hidden assumptions "
-        "and potential weaknesses in reports. Your feedback is crucial for refining analyses and ensuring they effectively inform "
-        "strategic decision-making. You evaluate reports against best practices and strategic objectives."
-    ),
-    allow_delegation=False, 
-    verbose=True,
-    tools=[KnowledgeBaseTool(), StrategicPlanningTool()]
-)
-
 # Define Tasks with enhanced complexity and interdependence
 target_research_task = Task(
     description="""Conduct comprehensive research on {company_name} in the {industry} sector. 
@@ -531,37 +516,8 @@ This analysis should provide strategic context for our engagement approach.""",
     }
 )
 
-market_analysis_critique_task = Task(
-    description="""Critically evaluate the Market Analysis Report provided by the previous task (available in the execution context). 
-Focus your critique on the analysis for {company_name} in the {industry} sector, considering the following points:
-
-1. Strategic Relevance: Does the analysis directly inform the strategic goals for engagement?
-
-2. Actionability: Are the insights clear, specific, and actionable?
-
-3. Completeness: Are there any significant gaps (e.g., competitor blind spots, overlooked trends)?
-
-4. Clarity and Structure: Is the report well-organized and easy to understand?
-
-Consult the Knowledge Base for relevant analytical frameworks or best practices if needed. 
-Provide specific strengths, weaknesses, and actionable recommendations for improvement based on the provided report.
-""",
-    expected_output="""A structured critique document outlining:
-
-- Key Strengths of the Market Analysis provided in the context.
-
-- Identified Weaknesses or Gaps in the provided analysis.
-
-- Specific, actionable suggestions for enhancement or refinement of the analysis.
-""",
-    tools=[KnowledgeBaseTool(), StrategicPlanningTool()],
-    agent=critique_agent,
-    # Context remains dependent on market_analysis_task
-    context=[market_analysis_task], 
-)
-
 strategy_development_task = Task(
-    description="""Using insights from the initial research, financial analysis, competitor analysis, market analysis, and the critique feedback, 
+    description="""Using insights from the initial research, financial analysis, competitor analysis, and market analysis, 
 develop a comprehensive engagement strategy for {company_name}. Create a strategic roadmap that addresses their 
 specific needs (informed by research) while leveraging our unique capabilities within the competitive and financial context. 
 The strategy should include positioning, value proposition, engagement approach, and potential objection handling. 
@@ -575,8 +531,8 @@ Integrate all prior findings to create a cohesive strategy. Apply appropriate st
 """,
     tools=[StrategicPlanningTool(), KnowledgeBaseTool()],
     agent=strategy_specialist_agent,
-    # UPDATE Context: Add financial and competitor analysis tasks
-    context=[target_research_task, financial_analysis_task, competitor_analysis_task, market_analysis_task, market_analysis_critique_task], 
+    # UPDATE Context: Removed critique task
+    context=[target_research_task, financial_analysis_task, competitor_analysis_task, market_analysis_task], 
     input_fn=lambda context: {
         "description": json.dumps({
             "organization_type": context.get('industry', 'Unknown Industry'),
@@ -586,7 +542,7 @@ Integrate all prior findings to create a cohesive strategy. Apply appropriate st
 )
 
 communication_development_task = Task(
-    description="""Based on the refined strategic engagement plan (which incorporated financial, competitor, market analysis, and critique feedback), 
+    description="""Based on the refined strategic engagement plan (which incorporated financial, competitor, and market analysis), 
 develop a comprehensive communication framework for engaging with {company_name}. 
 Create personalized communication templates for key stakeholder types (e.g., leadership, technical teams) that align with our strategic objectives. 
 The communications should demonstrate deep understanding of their needs and context while clearly articulating our value proposition. 
@@ -600,7 +556,6 @@ Align all communications with the refined strategic approach. Utilize communicat
 """,
     tools=[CommunicationOptimizationTool(), SentimentAnalysisTool(), KnowledgeBaseTool()],
     agent=communication_expert_agent,
-    # Context remains dependent on strategy_development_task
     context=[strategy_development_task], 
     input_fn=lambda context: {
         "description": json.dumps({
@@ -613,7 +568,7 @@ Align all communications with the refined strategic approach. Utilize communicat
 
 reflection_task = Task(
     description="""Conduct a thorough final analysis of the overall strategy and communication plan developed for {company_name}, 
-considering all preceding analysis stages (research, financial, competitor, market, critique). 
+considering all preceding analysis stages (research, financial, competitor, market). 
 Identify potential weaknesses, blind spots, or areas for improvement in the final plan. Consider alternative approaches and edge cases. 
 This critical self-reflection should strengthen our overall approach and prepare us for potential challenges.""",
     expected_output="""A strategic reflection document including:
@@ -625,8 +580,8 @@ This critical self-reflection should strengthen our overall approach and prepare
 """,
     tools=[StrategicPlanningTool(), KnowledgeBaseTool()],
     agent=strategy_specialist_agent,
-    # UPDATE Context: Add financial and competitor analysis tasks for final review
-    context=[strategy_development_task, communication_development_task, market_analysis_critique_task, financial_analysis_task, competitor_analysis_task], 
+    # UPDATE Context: Removed critique task
+    context=[strategy_development_task, communication_development_task, financial_analysis_task, competitor_analysis_task], 
     input_fn=lambda context: {
         "description": json.dumps({
             "organization_type": context.get('industry', 'Unknown Industry'),
@@ -637,24 +592,26 @@ This critical self-reflection should strengthen our overall approach and prepare
 
 # Define advanced Crew with process configuration
 crew = Crew(
+    # UPDATE Agents: Removed critique agent
     agents=[
         research_coordinator_agent,
         financial_analyst_agent, 
         competitor_analyst_agent,
         market_analyst_agent,
-        critique_agent,
+        # critique_agent, (Removed)
         strategy_specialist_agent,
         communication_expert_agent
     ],
+    # UPDATE Tasks: Removed critique task
     tasks=[
         target_research_task,
-        financial_analysis_task, # Added
-        competitor_analysis_task, # Added
-        market_analysis_task, # Now depends on competitor task
-        market_analysis_critique_task,
-        strategy_development_task, # Now depends on financial & competitor tasks
+        financial_analysis_task, 
+        competitor_analysis_task, 
+        market_analysis_task, 
+        # market_analysis_critique_task, (Removed)
+        strategy_development_task, 
         communication_development_task,
-        reflection_task # Now depends on financial & competitor tasks
+        reflection_task
     ],
     verbose=True,
     memory=True,
@@ -695,9 +652,12 @@ def format_to_text(execution_time, tasks, result_container, agents, input_data):
     if task_outputs and len(task_outputs) == len(tasks):
         output_lines.append("--- Task Results ---")
         for i, (task, task_output) in enumerate(zip(tasks, task_outputs)):
+            # --- Removed the skip logic for critique task --- 
+            
             task_desc = task.description.split(".")[0]
-            task_desc = task_desc.replace("{company_name}", company_name).replace("{industry}", industry)
-            output_lines.append(f"\nTask {i+1}: {task_desc}")
+            # Adjust task description formatting slightly if needed
+            task_desc_formatted = task_desc.replace("{company_name}", company_name).replace("{industry}", industry).strip()
+            output_lines.append(f"\nTask {i+1}: {task_desc_formatted}")
             output_lines.append("-" * 40)
             
             output_content = getattr(task_output, 'raw', None)
