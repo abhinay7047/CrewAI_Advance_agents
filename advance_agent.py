@@ -620,8 +620,8 @@ crew = Crew(
 
 # Generic input that works for any target and industry
 input_data = {
-    'company_name': 'HDFC Bank',
-    'industry': 'Finance and Banking'
+    'company_name': 'NVIDIA',
+    'industry': 'Semiconductors'
 }
 
 print("\n--- Starting Crew Execution ---")
@@ -711,9 +711,14 @@ try:
 except Exception as e:
     print(f"Error writing report file '{file_path}': {e}")
 
+# --- Send Email (if report was written) ---
 if report_written:
-    recipient = os.getenv("RECIPIENT_EMAIL")
-    if recipient:
+    # Ask for recipient email in the terminal
+    print("\n--- Email Report --- ")
+    recipient = input("Enter the email address to send the report to (leave blank to skip): ").strip()
+
+    # Validate and send only if a valid-looking email is provided
+    if recipient and '@' in recipient:
         email_subject = f"CrewAI Analysis Report for {input_data.get('company_name', 'Target Company')}"
         email_body = f"Attached is the strategic analysis report for {input_data.get('company_name', 'Target Company')} generated on {execution_time_str}."
         
@@ -727,9 +732,11 @@ if report_written:
         if email_sent:
             print("Report successfully sent via email.")
         else:
-            print("Failed to send report via email. Check logs and .env settings.")
-    else:
-        print("\nEmail not sent: RECIPIENT_EMAIL not found in .env file.")
+            print("Failed to send report via email. Check logs and .env settings (sender credentials, SMTP).")
+    elif recipient: # Input was given but doesn't look like an email
+        print(f"Invalid email address format entered ('{recipient}'). Skipping email.")
+    else: # Input was left blank
+        print("No recipient email entered. Skipping email sending.")
 else:
     print("\nEmail not sent because the report file could not be written.")
 

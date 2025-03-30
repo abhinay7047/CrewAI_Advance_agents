@@ -67,15 +67,15 @@ The final output is a detailed text report summarizing the findings and recommen
     OPENAI_API_KEY="your_openai_api_key"
     # OPENAI_MODEL_NAME="gpt-4" # Optional: Specify a model like gpt-4
 
-    # Required for Email Functionality
+    # Required for Email Functionality (Sender Details)
     EMAIL_ADDRESS="your_sender_email@example.com"
     EMAIL_PASSWORD="your_email_password_or_app_password"
     SMTP_SERVER="smtp.example.com"
     SMTP_PORT="587" # or 465 for SSL
-    RECIPIENT_EMAIL="recipient_email@example.com"
+    # RECIPIENT_EMAIL is now prompted for in the terminal
     ```
 
-    *   Replace placeholders with your actual credentials.
+    *   Replace placeholders with your actual sender credentials.
     *   For Gmail with 2FA, you'll need to generate an "App Password".
     *   Ensure the SMTP server and port are correct for your email provider.
 
@@ -94,7 +94,6 @@ The final output is a detailed text report summarizing the findings and recommen
     input_data = {
         'company_name': 'New Target Company', # Replaces 'target_name'
         'industry': 'Their Industry'
-        # Removed key_decision_maker, position, milestone
     }
     ```
 
@@ -106,7 +105,8 @@ The final output is a detailed text report summarizing the findings and recommen
 4.  **Output:**
     *   The script will print detailed logs of the agent interactions to the console (`verbose=True`).
     *   A text report file named `<company_name_safe>_report_<timestamp>.txt` will be generated in the project root.
-    *   If email settings are correctly configured in `.env`, the script will attempt to send the report file to the `RECIPIENT_EMAIL`.
+    *   **Email Prompt:** After generating the report, the script will ask you to enter the recipient's email address in the terminal.
+    *   If a valid email is entered and sender settings in `.env` are correct, the script will attempt to send the report file.
 
 ## Configuration Details
 
@@ -114,7 +114,7 @@ The final output is a detailed text report summarizing the findings and recommen
     *   `OPENAI_API_KEY`: Essential for the underlying LLMs used by CrewAI.
     *   `EMAIL_ADDRESS`/`EMAIL_PASSWORD`: Credentials for the email account sending the report.
     *   `SMTP_SERVER`/`SMTP_PORT`: Your email provider's SMTP details.
-    *   `RECIPIENT_EMAIL`: The address where the final report will be sent.
+    *   ~~`RECIPIENT_EMAIL`~~: (Removed - prompted for in terminal)
 *   **`knowledge_base.json`:** Stores structured information (frameworks, guidelines, insights) accessed by the `KnowledgeBaseTool`. You can modify or extend this file with more relevant data.
 *   **`input_data` (in `advance_agent.py`):** Dictionary defining the target company name and industry for the analysis.
 
