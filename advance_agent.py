@@ -280,6 +280,10 @@ def send_email_with_attachment(recipient_email, subject, body, file_path):
     smtp_server = os.getenv("SMTP_SERVER")
     smtp_port = os.getenv("SMTP_PORT")
 
+    # --- Add Debug Print --- 
+    print(f"DEBUG: Read SMTP_PORT from environment: '{smtp_port}'") 
+    # -----------------------
+
     # --- Input Validation ---
     if not all([sender_email, sender_password, smtp_server, smtp_port]):
         print("Error: Email credentials or SMTP server details not found in .env file.")
@@ -620,8 +624,8 @@ crew = Crew(
 
 # Generic input that works for any target and industry
 input_data = {
-    'company_name': 'NVIDIA',
-    'industry': 'Semiconductors'
+    'company_name': 'Dunnhumby',
+    'industry': 'Customer Data Science'
 }
 
 print("\n--- Starting Crew Execution ---")
