@@ -1,3 +1,6 @@
+# advance_agent.py
+
+# --- Imports and Environment Setup ---
 from crewai import Agent, Task, Crew, Process
 from dotenv import load_dotenv
 from crewai.tools import BaseTool
@@ -15,24 +18,29 @@ from email.mime.base import MIMEBase
 from email import encoders 
 import traceback 
 
+# Load environment variables (e.g., API keys, email credentials) from .env file
 load_dotenv()
 
-# Enhanced BaseTool implementation with error handling and metadata
+# --- Tool Input Schema --- 
+# Defines the expected input structure for all custom tools.
+# Ensures consistency in how agents pass arguments to tools.
 class ToolInputSchema(BaseModel):
     description: str = Field(..., description="The input data, query, or context for the tool")
 
-# Base tool class
+# --- Base Tool Enhancement --- 
+# Custom base class for all tools to standardize input handling and add common logic.
 class EnhancedBaseTool(BaseTool):
     args_schema: type[BaseModel] = ToolInputSchema
 
-    def _run(self, description: str) -> str:
+    def _run(self, description: str) -> str: 
         tool_name = self.name or "Unknown Tool"
         try:
             if not description:
                  print(f"Warning: Tool '{tool_name}' received empty description input.")
                  return f"Error: Tool '{tool_name}' requires a non-empty description input."
 
-            result = self.execute_tool_logic(description)
+            # Delegate core logic execution to a separate method.
+            result = self.execute_tool_logic(description) 
             return result
         except NotImplementedError:
              print(f"Error: execute_tool_logic not implemented in {tool_name}")
@@ -43,22 +51,27 @@ class EnhancedBaseTool(BaseTool):
             print(f"  Exception: {type(e).__name__}: {str(e)}")
             return f"Tool {tool_name} failed during execution logic with input '{description[:50]}...': {str(e)}"
 
-    def execute_tool_logic(self, input_string: str) -> str:
+    # Placeholder for actual tool implementation logic in subclasses.
+    def execute_tool_logic(self, input_string: str) -> str: 
         raise NotImplementedError(f"execute_tool_logic is not implemented for tool {self.name}")
 
+    # Example metadata function (can be customized).
     def get_metadata(self) -> Dict[str, Any]:
         return {
             "tool_name": self.name or "Unnamed Tool",
             "last_updated": datetime.now().isoformat(),
-            "reliability_score": 0.95
+            "reliability_score": 0.95 
         }
 
-# Advanced Research Tool
+# --- Specific Tool Definitions --- 
+# Each tool inherits from EnhancedBaseTool and implements its specific logic.
+
 class AdvancedResearchTool(EnhancedBaseTool):
     name: str = "Advanced Research Tool"
     description: str = "Performs comprehensive research on organizations, individuals, and industry trends from multiple sources"
 
-    def execute_tool_logic(self, query: str) -> str:
+    def execute_tool_logic(self, query: str) -> str: 
+        # Uses DuckDuckGo for web searches.
         if not query: return "Error: Advanced Research Tool query cannot be empty."
         try:
             search_tool = DuckDuckGoSearchRun()
@@ -66,18 +79,19 @@ class AdvancedResearchTool(EnhancedBaseTool):
             if not results or "No good DuckDuckGo Search Results found" in results:
                  print(f"Warning: DuckDuckGo returned no results for query: {query}")
                  return f"No research findings found for '{query}'. Try refining the query."
+            # Adds basic processing/summarization (can be enhanced).
             processed_results = f"Research findings for '{query}':\n\n{results}\n\nKey insights extracted:\n- Identified potential growth opportunities\n- Found recent organizational changes\n- Analyzed current market positioning"
             return processed_results
         except Exception as e:
             print(f"Error during DuckDuckGo search for '{query}': {e}")
             return f"Error performing research for '{query}': {e}"
 
-# Market Analysis Tool
 class MarketAnalysisTool(EnhancedBaseTool):
     name: str = "Market Analysis Tool"
     description: str = "Analyzes market trends, competitor landscapes, and industry developments"
 
-    def execute_tool_logic(self, industry: str) -> str:
+    def execute_tool_logic(self, industry: str) -> str: 
+        # Currently uses simulated data for market analysis.
         if not industry: return "Error: Market Analysis Tool requires an industry name."
         analysis = (
             f"Market Analysis for {industry} industry:\n\n"
@@ -89,12 +103,12 @@ class MarketAnalysisTool(EnhancedBaseTool):
         )
         return analysis
 
-# Sentiment Analysis Tool
 class SentimentAnalysisTool(EnhancedBaseTool):
     name: str = "Sentiment Analysis Tool"
     description: str = "Analyzes sentiment in communications, social media, and public perception"
 
-    def execute_tool_logic(self, text: str) -> str:
+    def execute_tool_logic(self, text: str) -> str: 
+        # Performs basic keyword-based sentiment scoring.
         if not text: return "Neutral sentiment detected (No text provided)."
         positive_words = ["growth", "innovation", "success", "revolutionary", "increase", "profit", "opportunity"]
         negative_words = ["decline", "struggle", "loss", "failure", "problem", "decrease", "challenge"]
@@ -109,14 +123,14 @@ class SentimentAnalysisTool(EnhancedBaseTool):
             return f"Negative sentiment detected (score: {negative_count - positive_count}). Potential concerns to address in communications."
         else:
             return "Neutral sentiment detected. Recommend balanced approach focusing on factual information and value proposition."
-        
 
-# Strategic Planning Tool
 class StrategicPlanningTool(EnhancedBaseTool):
     name: str = "Strategic Planning Tool"
     description: str = "Develops strategic recommendations based on market research and organizational needs"
 
-    def execute_tool_logic(self, context_data_json: str) -> str:
+    def execute_tool_logic(self, context_data_json: str) -> str: 
+        # Parses JSON input to extract objectives and organization type.
+        # Maps objectives to pre-defined strategic recommendations.
         if not context_data_json: return "Error: Strategic Planning Tool requires context data (JSON expected)."
         try:
             data = json.loads(context_data_json)
@@ -151,12 +165,13 @@ class StrategicPlanningTool(EnhancedBaseTool):
 
         return f"Strategic recommendations for {org_type} organization based on objectives ({', '.join(objectives)}):\n\n" + "\n".join([f"- {strategy}" for strategy in available_strategies.values()])
     
-# Communication Optimization Tool
 class CommunicationOptimizationTool(EnhancedBaseTool):
     name: str = "Communication Optimization Tool"
     description: str = "Analyzes and enhances communication effectiveness for different contexts and audiences"
 
-    def execute_tool_logic(self, input_data_json: str) -> str:
+    def execute_tool_logic(self, input_data_json: str) -> str: 
+        # Parses JSON input for audience, message context, and objective.
+        # Applies pre-defined communication enhancement rules.
         if not input_data_json: return "Error: Communication Optimization Tool requires input data (JSON expected)."
         try:
             data = json.loads(input_data_json)
@@ -166,7 +181,7 @@ class CommunicationOptimizationTool(EnhancedBaseTool):
         except json.JSONDecodeError:
             print(f"Warning: CommunicationOptimizationTool received non-JSON input: '{input_data_json}'. Treating as message context.")
             audience = "general"
-            message = input_data_json
+            message = input_data_json 
             objective = "inform"
         except Exception as e:
             print(f"Error processing input in CommunicationOptimizationTool: {e}")
@@ -186,82 +201,69 @@ class CommunicationOptimizationTool(EnhancedBaseTool):
             f"Enhancements applied:\n" + "\n".join([f"- {enhancement}" for enhancement in enhancements])
         )
 
-# Knowledge Base Tool (loads from knowledge_base.json)
 class KnowledgeBaseTool(EnhancedBaseTool):
     name: str = "Knowledge Base Tool"
-    description: str = "Provides access to built-in knowledge and best practices for research, strategy, and communications loaded from knowledge_base.json"
-    # Declare fields with class-level defaults where appropriate
+    description: str = "Provides access to built-in knowledge and best practices loaded from knowledge_base.json"
+    # Declare fields with class-level defaults for Pydantic validation.
     knowledge: Dict[str, Dict[str, str]] = {} 
-    knowledge_file: str = "knowledge_base.json" # Provide default here
+    knowledge_file: str = "knowledge_base.json"
 
-    # Let's keep it to explicitly show the loading process
-    def __init__(self, **kwargs): # Accept arbitrary kwargs for flexibility
-        # Pass any provided kwargs to the parent init first
-        # This ensures Pydantic initializes fields correctly based on class defaults
-        # or any values passed during instantiation (like by CrewAI if it ever changes)
+    # Initializes the tool by loading data from the specified JSON file.
+    def __init__(self, **kwargs):
         super().__init__(**kwargs) 
-        # The self.knowledge_file field is already set by Pydantic
         try:
-            # Use the field value self.knowledge_file which has the default
             with open(self.knowledge_file, 'r', encoding='utf-8') as f: 
                 self.knowledge = json.load(f) 
             print(f"Knowledge Base Tool initialized successfully from {self.knowledge_file}.")
         except FileNotFoundError:
             print(f"Error: Knowledge base file '{self.knowledge_file}' not found. Initializing with empty knowledge.")
-            # Default empty dict is already set in field declaration
             pass 
         except json.JSONDecodeError as e:
             print(f"Error: Failed to decode JSON from '{self.knowledge_file}': {e}. Initializing with empty knowledge.")
-            # Default empty dict is already set in field declaration
             pass 
         except Exception as e:
             print(f"An unexpected error occurred loading knowledge base from '{self.knowledge_file}': {e}")
-            # Default empty dict is already set in field declaration
             pass
 
-    def execute_tool_logic(self, query: str) -> str:
+    def execute_tool_logic(self, query: str) -> str: 
+        # Searches the loaded knowledge base for matching categories or subcategories.
         if not self.knowledge:
              return "Error: Knowledge Base is not loaded or is empty. Cannot process query."
         if not query: return "Error: Knowledge Base Tool query cannot be empty."
         
         query_lower = query.lower().strip()
         
-        # --- Matching Logic --- 
+        # Matching Logic: Prioritizes exact subcategory, then subcategory keyword, then category keyword.
         # 1. Exact subcategory match
         for category, subcategories in self.knowledge.items():
              category_key = category.replace("_", " ")
              for subcategory, content in subcategories.items():
                   subcategory_key = subcategory.replace("_", " ")
                   if subcategory_key == query_lower:
-                       # Use title() for better formatting
                        return f"Knowledge Base: {subcategory_key.title()}\n\n{content}" 
 
-        # 2. Subcategory keyword containment (improved check)
+        # 2. Subcategory keyword containment 
         best_match_content = None
         best_match_len = 0
         for category, subcategories in self.knowledge.items():
             for subcategory, content in subcategories.items():
                 subcategory_key = subcategory.replace("_", " ")
-                # Check if the query *contains* the subcategory key
                 if subcategory_key in query_lower: 
-                     # Prefer longer/more specific matches
                      if len(subcategory_key) > best_match_len:
                           best_match_len = len(subcategory_key)
                           best_match_content = f"Relevant Knowledge: {subcategory_key.title()}\n\n{content}" 
         if best_match_content: return best_match_content
 
-        # 3. Category keyword containment (improved check)
+        # 3. Category keyword containment 
         best_category_match = None
         for category, subcategories in self.knowledge.items():
              category_key = category.replace("_", " ")
-             # Check if the query *contains* the category key 
              if category_key in query_lower: 
                   available = ", ".join([s.replace("_", " ").title() for s in subcategories.keys()])
-                  # Store potential category match but continue searching for subcategory matches first
                   best_category_match = f"Found Category '{category_key.title()}'. Available Topics: {available}\n\nPlease specify topic." 
-        if best_category_match: return best_category_match # Return category match only if no subcategory match found
+        if best_category_match: return best_category_match
 
-        # 4. Industry insight match (check specifically within industry_insights)
+        # 4. Industry insight match 
         industry_insights = self.knowledge.get("industry_insights", {})
         for industry_key, insight in industry_insights.items():
             if industry_key.replace("_", " ") in query_lower:
@@ -271,20 +273,19 @@ class KnowledgeBaseTool(EnhancedBaseTool):
         available_categories = ", ".join([c.replace("_", " ").title() for c in self.knowledge.keys()])
         return f"No specific match found for '{query}' in Knowledge Base. Available categories: {available_categories}. Please refine your query."
 
-# --- Email Sending Function (Copied and adjusted from advance_agent 2.py) ---
+# --- Email Sending Function --- 
+# Handles sending the final report via email using SMTP configuration from .env.
 def send_email_with_attachment(recipient_email, subject, body, file_path):
     """Sends an email with the specified file attached."""
-    # Use EMAIL_ADDRESS and EMAIL_PASSWORD as previously specified for .env
     sender_email = os.getenv("EMAIL_ADDRESS") 
     sender_password = os.getenv("EMAIL_PASSWORD")
     smtp_server = os.getenv("SMTP_SERVER")
     smtp_port = os.getenv("SMTP_PORT")
 
-    # --- Add Debug Print --- 
+    # Debug print for port
     print(f"DEBUG: Read SMTP_PORT from environment: '{smtp_port}'") 
-    # -----------------------
 
-    # --- Input Validation ---
+    # Input validation for credentials and recipient
     if not all([sender_email, sender_password, smtp_server, smtp_port]):
         print("Error: Email credentials or SMTP server details not found in .env file.")
         print("Please ensure EMAIL_ADDRESS, EMAIL_PASSWORD, SMTP_SERVER, and SMTP_PORT are set.")
@@ -299,17 +300,17 @@ def send_email_with_attachment(recipient_email, subject, body, file_path):
     try:
         smtp_port = int(smtp_port)
     except ValueError:
-        print(f"Error: Invalid SMTP_PORT defined in .env file: {smtp_port}. Must be a number.")
+        print(f"Error: Invalid SMTP_PORT defined in .env file: {os.getenv('SMTP_PORT')}. Must be a number.") 
         return False
 
-    # --- Create the email message ---
+    # Create MIME message structure
     message = MIMEMultipart()
     message['From'] = sender_email
     message['To'] = recipient_email
     message['Subject'] = subject
     message.attach(MIMEText(body, 'plain'))
 
-    # --- Attach the file ---
+    # Attach the report file
     try:
         with open(file_path, "rb") as attachment:
             part = MIMEBase("application", "octet-stream")
@@ -325,19 +326,21 @@ def send_email_with_attachment(recipient_email, subject, body, file_path):
         print(f"An unexpected error occurred while processing the attachment: {e}")
         return False
 
-    # --- Connect to SMTP server and send ---
+    # Connect, authenticate, and send using SMTP
     server = None
     try:
-        print(f"Connecting to SMTP server {smtp_server}:{smtp_port}...")
+        server_name_read = os.getenv("SMTP_SERVER") 
+        print(f"DEBUG: Read SMTP_SERVER from environment: '{server_name_read}'")
+        print(f"Connecting to SMTP server {server_name_read}:{smtp_port}...")
         if smtp_port == 465:
              print("Using SMTP_SSL.")
-             server = smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=20) # Use SSL for port 465
+             server = smtplib.SMTP_SSL(server_name_read, smtp_port, timeout=20)
         else:
              print("Using SMTP with STARTTLS.")
-             server = smtplib.SMTP(smtp_server, smtp_port, timeout=20) # Use standard SMTP for others (like 587)
-             server.ehlo() # Greet server before TLS
-             server.starttls() # Encrypt connection
-             server.ehlo() # Re-greet server over TLS
+             server = smtplib.SMTP(server_name_read, smtp_port, timeout=20)
+             server.ehlo() 
+             server.starttls() 
+             server.ehlo() 
 
         print("Logging in...")
         server.login(sender_email, sender_password)
@@ -347,11 +350,13 @@ def send_email_with_attachment(recipient_email, subject, body, file_path):
         print(f"Email sent successfully to {recipient_email}!")
         return True
     except smtplib.SMTPAuthenticationError:
-        print("Error: SMTP Authentication failed. Check email address and password/app password in .env file.")
+        print("Error: SMTP Authentication failed. Check EMAIL_ADDRESS and EMAIL_PASSWORD/app password in .env file.")
         print("       (If using Gmail with 2FA, ensure you are using an App Password).")
         return False
     except (smtplib.SMTPConnectError, socket.gaierror, socket.timeout, smtplib.SMTPServerDisconnected) as e:
-        print(f"Error: Could not connect to or communicate with SMTP server {smtp_server}:{smtp_port}. Check server/port details, network connection, and firewall.")
+        server_name_read = os.getenv("SMTP_SERVER") 
+        port_read = os.getenv("SMTP_PORT")
+        print(f"Error: Could not connect to or communicate with SMTP server {server_name_read}:{port_read}. Check server/port details, network connection, and firewall.")
         print(f"       Specific error: {e}")
         return False
     except smtplib.SMTPException as e:
@@ -367,73 +372,78 @@ def send_email_with_attachment(recipient_email, subject, body, file_path):
                 print("Closing SMTP connection.")
                 server.quit()
             except smtplib.SMTPException:
-                pass # Ignore errors during quit
+                pass 
 
-# Define more specialized and autonomous Agents
+# --- Agent Definitions --- 
+# Define the specialized AI agents with their roles, goals, backstories, and assigned tools.
+# Roles are kept short to avoid potential path length issues on Windows with memory enabled.
+
 market_analyst_agent = Agent(
-    role="Market Analyst",
+    role="Market Analyst", 
     goal="Provide comprehensive market intelligence to inform strategic decisions",
-    backstory="You are an expert analyst with deep experience across multiple industries. Your ability to identify patterns and extract meaningful insights from complex data sets makes you invaluable for understanding market dynamics and competitive landscapes.",
+    backstory="You are an expert analyst with deep experience across multiple industries. Your ability to identify patterns and extract meaningful insights from complex data sets makes you invaluable for understanding market dynamics and competitive landscapes.", 
     allow_delegation=True,
     verbose=True,
     tools=[AdvancedResearchTool(), MarketAnalysisTool(), KnowledgeBaseTool()]
 )
 
 strategy_specialist_agent = Agent(
-    role="Strategy Expert",
+    role="Strategy Expert", 
     goal="Develop effective strategies based on market research and organizational objectives",
-    backstory="You've mastered the art of translating research into actionable strategies. With your exceptional analytical thinking and creative problem-solving, you consistently develop approaches that achieve organizational objectives while adapting to market conditions.",
+    backstory="You've mastered the art of translating research into actionable strategies. With your exceptional analytical thinking and creative problem-solving, you consistently develop approaches that achieve organizational objectives while adapting to market conditions.", 
     allow_delegation=True,
     verbose=True,
     tools=[StrategicPlanningTool(), MarketAnalysisTool(), KnowledgeBaseTool()]
 )
 
 communication_expert_agent = Agent(
-    role="Comms Expert",
+    role="Comms Expert", 
     goal="Craft personalized, impactful communications that resonate with target audiences",
-    backstory="Your background in psychology and communication theory has made you exceptionally skilled at crafting messages that connect. You understand how to adapt tone, structure, and content to different audiences while maintaining authenticity and driving engagement.",
+    backstory="Your background in psychology and communication theory has made you exceptionally skilled at crafting messages that connect. You understand how to adapt tone, structure, and content to different audiences while maintaining authenticity and driving engagement.", 
     allow_delegation=True,
     verbose=True,
     tools=[CommunicationOptimizationTool(), SentimentAnalysisTool(), KnowledgeBaseTool()]
 )
 
 research_coordinator_agent = Agent(
-    role="Research Coordinator",
+    role="Research Coordinator", 
     goal="Orchestrate research efforts and synthesize findings into actionable intelligence",
-    backstory="You excel at managing complex research projects and integrating diverse information sources. Your talent lies in asking the right questions, directing research efforts efficiently, and creating comprehensive intelligence briefs that drive decision-making.",
+    backstory="You excel at managing complex research projects and integrating diverse information sources. Your talent lies in asking the right questions, directing research efforts efficiently, and creating comprehensive intelligence briefs that drive decision-making.", 
     allow_delegation=True,
     verbose=True,
     tools=[AdvancedResearchTool(), KnowledgeBaseTool()]
 )
 
-# --- New Agents ---
-
 financial_analyst_agent = Agent(
-    role="Financial Analyst",
+    role="Financial Analyst", 
     goal="Analyze the target company's financial health, performance, and investment potential based on public data.",
     backstory=(
         "An expert in interpreting financial statements, stock market data, and investment reports to assess corporate "
         "financial standing and trajectory. You meticulously search for earnings reports, financial ratios, stock performance, "
         "and major financial events."
-    ),
+    ), 
     allow_delegation=False,
     verbose=True,
-    tools=[AdvancedResearchTool(), KnowledgeBaseTool()] # Use research tool for financial data, KB for frameworks
+    tools=[AdvancedResearchTool(), KnowledgeBaseTool()]
 )
 
 competitor_analyst_agent = Agent(
-    role="Competitor Analyst",
+    role="Competitor Analyst", 
     goal="Perform deep-dive analysis on key competitors identified for the target company.",
     backstory=(
         "Skilled at uncovering competitor strategies, strengths, weaknesses, and market positioning through targeted research. "
         "You identify primary competitors and dissect their market approach."
-    ),
+    ), 
     allow_delegation=False,
     verbose=True,
-    tools=[AdvancedResearchTool(), KnowledgeBaseTool()] # Use research tool for competitor info, KB for profiling frameworks
+    tools=[AdvancedResearchTool(), KnowledgeBaseTool()]
 )
 
-# Define Tasks with enhanced complexity and interdependence
+# --- Task Definitions --- 
+# Define the sequence of tasks to be performed by the agents.
+# Each task has a description (guiding the agent), expected output format, assigned agent, 
+# and context (outputs from previous tasks needed).
+
 target_research_task = Task(
     description="""Conduct comprehensive research on {company_name} in the {industry} sector. 
 Analyze their current market position, recent developments, key decision-makers (if identifiable), 
@@ -451,16 +461,14 @@ base for research frameworks and industry context.""",
 - Potential opportunities for engagement
 - Recommended approach vectors
 """,
-    tools=[AdvancedResearchTool(), KnowledgeBaseTool()], # Removed MarketAnalysisTool here, focus on initial research
+    tools=[AdvancedResearchTool(), KnowledgeBaseTool()], 
     agent=research_coordinator_agent,
     context=[],
-    # Simplified input_fn as primary focus is research based on name/industry
-    input_fn=lambda context: {
+    input_fn=lambda context: { 
         "description": f"Research company: {context.get('company_name', 'Target Company')}, Industry: {context.get('industry', 'Unknown Industry')}. Focus: market position, developments, structure, initiatives, needs, challenges."
     }
 )
 
-# NEW Financial Analysis Task
 financial_analysis_task = Task(
     description="""Based on the initial research on {company_name}, analyze its financial performance and health. 
 Specifically look for:
@@ -478,10 +486,9 @@ Use the Advanced Research Tool focusing on financial data sources (e.g., investo
 """,
     tools=[AdvancedResearchTool(), KnowledgeBaseTool()],
     agent=financial_analyst_agent,
-    context=[target_research_task], # Needs initial research context
+    context=[target_research_task], 
 )
 
-# NEW Competitor Analysis Task
 competitor_analysis_task = Task(
     description="""Based on the initial research on {company_name} operating in the {industry} sector, identify its top 2-3 direct competitors. 
 For each identified competitor, perform a brief analysis using the 'competitor profiling' framework from the Knowledge Base:
@@ -496,7 +503,7 @@ Use the Advanced Research Tool to find information about these competitors.""",
 """,
     tools=[AdvancedResearchTool(), KnowledgeBaseTool()],
     agent=competitor_analyst_agent,
-    context=[target_research_task], # Needs initial research context
+    context=[target_research_task], 
 )
 
 market_analysis_task = Task(
@@ -510,11 +517,9 @@ This analysis should provide strategic context for our engagement approach.""",
 - Identification of market gaps or opportunities relevant to {company_name}.
 - Strategic positioning recommendations for {company_name} within this market context.
 """,
-    tools=[MarketAnalysisTool(), KnowledgeBaseTool()], # MarketAnalysisTool for broader trends, KB for frameworks
+    tools=[MarketAnalysisTool(), KnowledgeBaseTool()], 
     agent=market_analyst_agent,
-    # UPDATE Context: Now depends on competitor analysis as well
     context=[target_research_task, competitor_analysis_task], 
-    # Input function focuses on the industry, assuming context provides company/competitor details
     input_fn=lambda context: {
         "description": f"Analyze market trends and competitive landscape for the {context.get('industry', 'Unknown Industry')} industry, considering context on {context.get('company_name', 'Target Company')} and its competitors."
     }
@@ -535,7 +540,6 @@ Integrate all prior findings to create a cohesive strategy. Apply appropriate st
 """,
     tools=[StrategicPlanningTool(), KnowledgeBaseTool()],
     agent=strategy_specialist_agent,
-    # UPDATE Context: Removed critique task
     context=[target_research_task, financial_analysis_task, competitor_analysis_task, market_analysis_task], 
     input_fn=lambda context: {
         "description": json.dumps({
@@ -584,7 +588,6 @@ This critical self-reflection should strengthen our overall approach and prepare
 """,
     tools=[StrategicPlanningTool(), KnowledgeBaseTool()],
     agent=strategy_specialist_agent,
-    # UPDATE Context: Removed critique task
     context=[strategy_development_task, communication_development_task, financial_analysis_task, competitor_analysis_task], 
     input_fn=lambda context: {
         "description": json.dumps({
@@ -594,50 +597,55 @@ This critical self-reflection should strengthen our overall approach and prepare
     }
 )
 
-# Define advanced Crew with process configuration
+# --- Crew Definition --- 
+# Assemble the agents and tasks into a Crew.
+# Define the workflow process (sequential in this case).
+# Enable memory for context persistence between tasks.
 crew = Crew(
-    # UPDATE Agents: Removed critique agent
     agents=[
         research_coordinator_agent,
         financial_analyst_agent, 
         competitor_analyst_agent,
         market_analyst_agent,
-        # critique_agent, (Removed)
         strategy_specialist_agent,
         communication_expert_agent
     ],
-    # UPDATE Tasks: Removed critique task
     tasks=[
         target_research_task,
         financial_analysis_task, 
         competitor_analysis_task, 
         market_analysis_task, 
-        # market_analysis_critique_task, (Removed)
         strategy_development_task, 
         communication_development_task,
         reflection_task
     ],
-    verbose=True,
-    memory=True,
-    process=Process.sequential
+    verbose=True, # Enables detailed logging of agent actions.
+    memory=True, # Enables short-term memory for the crew.
+    process=Process.sequential # Tasks execute in the defined order.
 )
 
-# Generic input that works for any target and industry
+# --- Input Data --- 
+# Define the initial input parameters for the analysis.
 input_data = {
-    'company_name': 'Dunnhumby',
-    'industry': 'Customer Data Science'
+    'company_name': 'Fractal Analytics Private Limited',
+    'industry': 'AI and Analytics'
 }
 
+# --- Execute Crew --- 
+# Kick off the Crew process with the defined input data.
 print("\n--- Starting Crew Execution ---")
 result = crew.kickoff(inputs=input_data)
 print("--- Crew Execution Finished ---")
 
+# --- Output Formatting --- 
+# Function to format the raw results from the Crew execution into a readable text report.
 def format_to_text(execution_time, tasks, result_container, agents, input_data):
     output_lines = []
-    company_name = input_data.get('company_name', 'Unknown Company')
+    company_name = input_data.get('company_name', 'Unknown Company') 
     industry = input_data.get('industry', 'Unknown Industry')
     
-    output_lines.append(f"{company_name} Strategic Analysis Report")
+    # Add report header
+    output_lines.append(f"{company_name} Strategic Analysis Report") 
     output_lines.append(f"Industry: {industry}")
     output_lines.append(f"Generated on: {execution_time}")
     output_lines.append("=" * 50)
@@ -645,6 +653,7 @@ def format_to_text(execution_time, tasks, result_container, agents, input_data):
 
     task_outputs = []
     total_usage_metrics = {}
+    # Safely extract task outputs and usage metrics from the result object.
     if result_container:
         if hasattr(result_container, 'tasks_output') and isinstance(result_container.tasks_output, list):
             task_outputs = result_container.tasks_output
@@ -653,23 +662,24 @@ def format_to_text(execution_time, tasks, result_container, agents, input_data):
         elif not hasattr(result_container, 'tasks_output'):
              print(f"Debug: Result object type: {type(result_container)}, value: {str(result_container)[:500]}... Lacks 'tasks_output'.")
              
+    # Process and format the output of each task.
     if task_outputs and len(task_outputs) == len(tasks):
         output_lines.append("--- Task Results ---")
         for i, (task, task_output) in enumerate(zip(tasks, task_outputs)):
-            # --- Removed the skip logic for critique task --- 
             
             task_desc = task.description.split(".")[0]
-            # Adjust task description formatting slightly if needed
             task_desc_formatted = task_desc.replace("{company_name}", company_name).replace("{industry}", industry).strip()
             output_lines.append(f"\nTask {i+1}: {task_desc_formatted}")
             output_lines.append("-" * 40)
             
+            # Safely access the raw output content.
             output_content = getattr(task_output, 'raw', None)
             if output_content is None:
                  print(f"Debug: Task {i+1} output object type: {type(task_output)}, lacks 'raw'. Value: {str(task_output)[:200]}...")
-                 output_content = str(task_output)
+                 output_content = str(task_output) 
 
             output_lines.append("Key Findings:")
+            # Basic formatting for the output content.
             if output_content and isinstance(output_content, str):
                 for line in output_content.strip().split("\n"):
                     line_stripped = line.strip()
@@ -681,14 +691,15 @@ def format_to_text(execution_time, tasks, result_container, agents, input_data):
                  output_lines.append(f"  - Output (non-string): {str(output_content)[:300]}...")
             else:
                 output_lines.append("  - No output content found for this task.")
-            output_lines.append("")
+            output_lines.append("") 
     elif not task_outputs:
         output_lines.append("Execution resulted in no task outputs.")
         if result_container: output_lines.append(f"Raw result: {str(result_container)[:500]}...")
-    else:
+    else: 
         output_lines.append(f"Task output count ({len(task_outputs)}) does not match defined task count ({len(tasks)}).")
         output_lines.append(f"Raw result: {str(result_container)[:500]}...")
 
+    # Add execution metadata section.
     output_lines.append("\n--- Execution Metadata ---")
     output_lines.append("-" * 40)
     agent_roles = [agent.role for agent in agents]
@@ -700,10 +711,12 @@ def format_to_text(execution_time, tasks, result_container, agents, input_data):
 
     return "\n".join(output_lines)
 
+# --- Generate Report File --- 
+# Create the final report file with a timestamp.
 execution_time_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") 
 formatted_text = format_to_text(execution_time_str, crew.tasks, result, crew.agents, input_data) 
 
-target_name_safe = input_data.get('company_name', 'analysis').replace(" ", "_").replace(".", "").lower()
+target_name_safe = input_data.get('company_name', 'analysis').replace(" ", "_").replace(".", "").lower() 
 file_path = f"{target_name_safe}_report_{execution_time_str}.txt" 
 
 report_written = False
@@ -711,17 +724,16 @@ try:
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write(formatted_text)
     print(f"Text report file '{file_path}' created successfully.")
-    report_written = True
+    report_written = True 
 except Exception as e:
     print(f"Error writing report file '{file_path}': {e}")
 
-# --- Send Email (if report was written) ---
+# --- Send Email --- 
+# If the report was written successfully, prompt for recipient email and send.
 if report_written:
-    # Ask for recipient email in the terminal
     print("\n--- Email Report --- ")
     recipient = input("Enter the email address to send the report to (leave blank to skip): ").strip()
 
-    # Validate and send only if a valid-looking email is provided
     if recipient and '@' in recipient:
         email_subject = f"CrewAI Analysis Report for {input_data.get('company_name', 'Target Company')}"
         email_body = f"Attached is the strategic analysis report for {input_data.get('company_name', 'Target Company')} generated on {execution_time_str}."
@@ -737,13 +749,15 @@ if report_written:
             print("Report successfully sent via email.")
         else:
             print("Failed to send report via email. Check logs and .env settings (sender credentials, SMTP).")
-    elif recipient: # Input was given but doesn't look like an email
+    elif recipient: 
         print(f"Invalid email address format entered ('{recipient}'). Skipping email.")
-    else: # Input was left blank
+    else: 
         print("No recipient email entered. Skipping email sending.")
 else:
     print("\nEmail not sent because the report file could not be written.")
 
+# --- Print Raw Result --- 
+# Optionally print the raw result object from CrewAI for debugging.
 print("\n--- Raw Crew Kickoff Result ---")
 try:
     import pprint
